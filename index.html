@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scam Check – powered by Gemma 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14213d;
+  --ink-soft:#4a5671;
+  --paper:#eaeef4;
+  --panel:#ffffff;
+  --line:#cdd5e2;
+  --blue:#2446d6;
+  --safe:#1d7a4b;
+  --safe-bg:#e3f4ea;
+  --warn:#9a5b00;
+  --warn-bg:#fff1d6;
+  --bad:#b3122b;
+  --bad-bg:#fde4e8;
+  --radius:10px;
+  --head:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--body)}
+a{color:var(--blue)}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 56px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 32px;margin-bottom:28px}
+h1{font:800 clamp(2.4rem,6vw,4rem)/0.95 var(--head);letter-spacing:-0.03em;margin:0}
+.tagline{max-width:38ch;margin:0;color:var(--ink-soft)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.card h2{font:700 1.15rem/1.2 var(--head);margin:0 0 14px}
+
+label{display:block;font-weight:600;font-size:.92rem;margin:14px 0 6px}
+textarea,input[type=password],select{
+  width:100%;font:inherit;color:var(--ink);background:#f8fafc;border:1px solid var(--line);
+  border-radius:8px;padding:10px 12px}
+textarea{min-height:170px;resize:vertical}
+textarea:focus,input:focus,select:focus,button:focus-visible,.drop:focus-within{outline:3px solid var(--blue);outline-offset:1px}
+.row{display:flex;gap:12px}
+.row>*{flex:1;min-width:0}
+.hint{font-size:.85rem;color:var(--ink-soft);margin:6px 0 0}
+
+.samples{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{font:500 .85rem var(--body);background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+
+.drop{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;background:#f8fafc}
+.drop input{font-size:.9rem;max-width:100%}
+.thumb{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:none}
+.thumb.on{display:block}
+.link-btn{background:none;border:0;color:var(--blue);font:inherit;font-size:.85rem;cursor:pointer;padding:0;text-decoration:underline;display:none}
+.link-btn.on{display:inline}
+
+.go{width:100%;margin-top:18px;font:700 1.05rem var(--head);background:var(--ink);color:#fff;border:0;border-radius:8px;padding:14px;cursor:pointer}
+.go:hover{background:var(--blue)}
+.go[disabled]{opacity:.6;cursor:wait}
+
+.empty{color:var(--ink-soft)}
+.empty strong{color:var(--ink)}
+
+/* verdict: the one memorable element */
+.verdict{border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;border:2px solid currentColor}
+.verdict.safe{color:var(--safe);background:var(--safe-bg)}
+.verdict.suspicious{color:var(--warn);background:var(--warn-bg)}
+.verdict.scam{color:var(--bad);background:var(--bad-bg)}
+.verdict .word{font:800 clamp(2rem,5vw,2.9rem)/1 var(--head);letter-spacing:-0.02em;margin:0}
+.verdict .type{margin:6px 0 0;font-weight:600;color:var(--ink)}
+.meter{height:10px;border-radius:999px;background:rgba(20,33,61,.12);margin-top:14px;overflow:hidden}
+.meter span{display:block;height:100%;background:currentColor;border-radius:999px;transition:width .6s ease}
+.meter-label{font-size:.85rem;margin:6px 0 0;color:var(--ink)}
+
+.report h3{font:700 1rem var(--head);margin:18px 0 6px}
+.report ul{margin:0;padding-left:20px}
+.report li{margin:4px 0}
+.explain{margin:0}
+.linknotes li{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;word-break:break-all}
+.help{margin-top:18px;padding:12px 14px;border-left:4px solid var(--blue);background:#eef2ff;border-radius:0 8px 8px 0;font-size:.92rem}
+.error{padding:12px 14px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-weight:500}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-2px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}.meter span{transition:none}}
+
+mark{background:#ffd9de;color:var(--bad);border-radius:3px;padding:0 2px;font-weight:600}
+.quoted{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0;white-space:pre-wrap;word-break:break-word;font-size:.92rem}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.btn2{font:600 .9rem var(--body);background:#fff;color:var(--ink);border:1px solid var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn2:hover{background:var(--ink);color:#fff}
+.keyrow{display:flex;gap:8px}.keyrow input{flex:1}
+footer{margin-top:28px;font-size:.85rem;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Scam Check</h1>
+    <p class="tagline">Paste any message, link or screenshot. Gemma 4 tells you whether it is a scam and what to do next.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="in-h">
+      <h2 id="in-h">Check a message</h2>
+
+      <label for="msg">Message, SMS, WhatsApp text or link</label>
+      <textarea id="msg" placeholder="Paste it here, for example: 'Your SBI account will be blocked today. Update KYC at http://sbi-kyc-update.xyz'"></textarea>
+      <div class="samples" role="group" aria-label="Try a sample">
+        <button type="button" class="chip" data-sample="kyc">KYC alert</button>
+        <button type="button" class="chip" data-sample="upi">UPI refund</button>
+        <button type="button" class="chip" data-sample="job">Job offer</button>
+        <button type="button" class="chip" data-sample="safe">Normal message</button>
+      </div>
+
+      <label for="img">Screenshot (optional)</label>
+      <div class="drop">
+        <img id="thumb" class="thumb" alt="Selected screenshot preview">
+        <div>
+          <input id="img" type="file" accept="image/png,image/jpeg,image/webp">
+          <button type="button" id="clearImg" class="link-btn">Remove screenshot</button>
+        </div>
+      </div>
+      <p class="hint">Gemma 4 understands both text and images, so a chat screenshot works too. You can also paste with Ctrl+V or drag and drop.</p>
+
+      <div class="row">
+        <div>
+          <label for="lang">Answer language</label>
+          <select id="lang">
+            <option value="English">English</option>
+            <option value="Hinglish (Roman Hindi mixed with simple English)">Hinglish</option>
+            <option value="Hindi (Devanagari script)">हिंदी</option>
+          </select>
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it (fast)</option>
+            <option value="gemma-4-31b-it">gemma-4-31b-it (stronger)</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="key">Gemini API key</label>
+      <div class="keyrow"><input id="key" type="password" autocomplete="off" placeholder="Paste your key from Google AI Studio"><button type="button" id="showKey" class="btn2">Show</button></div>
+      <p class="hint">The key stays in your browser and is sent only to Google. Never commit it to GitHub.</p>
+
+      <button type="button" id="go" class="go">Check this message</button>
+    </section>
+
+    <section class="card report" id="out" aria-live="polite" aria-labelledby="out-h">
+      <h2 id="out-h">Result</h2>
+      <div id="result" class="empty">
+        <p><strong>Nothing checked yet.</strong> Paste a message on the left or pick a sample, then press "Check this message".</p>
+        <p>You will get a verdict, a risk score, red flags and safe next steps.</p>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    This tool gives an AI opinion, not a final verdict. If money or an OTP is involved, first call your bank on its official number.
+    If you have been a victim of cyber fraud, report it at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a> or dial 1930.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SAMPLES = {
+    kyc: "Dear customer, your SBI YONO account will be blocked today due to pending KYC. Update now: http://sbi-kyc-update.xyz/login and enter your OTP to avoid suspension.",
+    upi: "Congratulations! Rs 4,999 refund is waiting for you. Open your UPI app and approve the collect request from this number to receive the money. Hurry, offer expires in 10 minutes.",
+    job: "Hi, we have a work-from-home job: like YouTube videos and earn Rs 3,000 daily. First pay Rs 500 registration fee. Join our Telegram group: https://t.me/earnfast_jobs",
+    safe: "Hi Satyam, your Amazon order #405-1234567 has been shipped and will arrive on Monday. Track it in the Amazon app under Your Orders."
+  };
+
+  var OFFICIAL = ["sbi.co.in","onlinesbi.sbi","hdfcbank.com","icicibank.com","axisbank.com","paytm.com","phonepe.com","amazon.in","amazon.com","npci.org.in","indiapost.gov.in","incometax.gov.in","google.com","flipkart.com"];
+  var BRANDS = ["sbi","hdfc","icici","axis","paytm","phonepe","upi","kyc","amazon","flipkart","npci","indiapost","incometax","netflix","google"];
+  var SHORTENERS = ["bit.ly","tinyurl.com","t.co","cutt.ly","rb.gy","is.gd","shorturl.at"];
+  var BAD_TLDS = ["xyz","top","click","vip","live","online","site","icu","cc","buzz","monster"];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var msg = $("msg"), keyEl = $("key"), modelEl = $("model"), langEl = $("lang");
+  var imgEl = $("img"), thumb = $("thumb"), clearBtn = $("clearImg");
+  var goBtn = $("go"), result = $("result");
+  var imageData = null; // { mime, b64 }
+
+  // ---- saved settings (wrapped: storage can be blocked) ----
+  function store(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  function load(k){ try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } }
+  keyEl.value = load("sc_key");
+  if (load("sc_model")) modelEl.value = load("sc_model");
+  if (load("sc_lang")) langEl.value = load("sc_lang");
+  keyEl.addEventListener("change", function(){ store("sc_key", keyEl.value.trim()); });
+  $("showKey").addEventListener("click", function(){ var h = keyEl.type === "password"; keyEl.type = h ? "text" : "password"; this.textContent = h ? "Hide" : "Show"; });
+  msg.addEventListener("keydown", function(e){ if ((e.ctrlKey || e.metaKey) && e.key === "Enter") goBtn.click(); });
+  modelEl.addEventListener("change", function(){ store("sc_model", modelEl.value); });
+  langEl.addEventListener("change", function(){ store("sc_lang", langEl.value); });
+
+  // ---- samples ----
+  document.querySelectorAll("[data-sample]").forEach(function(b){
+    b.addEventListener("click", function(){
+      msg.value = SAMPLES[b.getAttribute("data-sample")];
+      msg.focus();
+    });
+  });
+
+  // ---- screenshot ----
+  imgEl.addEventListener("change", function(){
+    var f = imgEl.files && imgEl.files[0];
+    if (!f) return clearImage();
+    if (f.size > 6 * 1024 * 1024){
+      showError("The screenshot must be smaller than 6 MB.");
+      return clearImage();
+    }
+    var r = new FileReader();
+    r.onload = function(){
+      var s = String(r.result);
+      imageData = { mime: f.type || "image/jpeg", b64: s.split(",")[1] };
+      thumb.src = s; thumb.classList.add("on"); clearBtn.classList.add("on");
+    };
+    r.readAsDataURL(f);
+  });
+  clearBtn.addEventListener("click", clearImage);
+  function takeFile(f){ try{ var dt = new DataTransfer(); dt.items.add(f); imgEl.files = dt.files; imgEl.dispatchEvent(new Event("change")); }catch(e){} }
+  document.addEventListener("paste", function(e){
+    var f = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+    if (f && /^image\//.test(f.type)){ e.preventDefault(); takeFile(f); }
+  });
+  document.addEventListener("dragover", function(e){ e.preventDefault(); });
+  document.addEventListener("drop", function(e){
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    e.preventDefault();
+    if (f && /^image\//.test(f.type)) takeFile(f);
+  });
+  function clearImage(){
+    imageData = null; imgEl.value = ""; thumb.removeAttribute("src");
+    thumb.classList.remove("on"); clearBtn.classList.remove("on");
+  }
+
+  // ---- quick local link check (no AI, instant) ----
+  function linkNotes(text){
+    var re = /(?:https?:\/\/|www\.)[^\s]+|\b(?:bit\.ly|tinyurl\.com|t\.co|cutt\.ly|rb\.gy|is\.gd|shorturl\.at)\/[^\s]*/gi;
+    var found = text.match(re) || [];
+    var notes = [];
+    found.slice(0, 5).forEach(function(raw){
+      var url = raw.replace(/[).,;!]+$/, "");
+      var host = "";
+      try { host = new URL(/^https?:/i.test(url) ? url : "http://" + url).hostname.toLowerCase(); } catch(e){ return; }
+      var flags = [];
+      if (!/^https:/i.test(url) && /^http:/i.test(url)) flags.push("not https");
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) flags.push("IP address instead of a name");
+      if (SHORTENERS.indexOf(host) > -1) flags.push("shortened link hides the real site");
+      var tld = host.split(".").pop();
+      if (BAD_TLDS.indexOf(tld) > -1) flags.push("." + tld + " is often used in scams");
+      var official = OFFICIAL.some(function(d){ return host === d || host.slice(-(d.length + 1)) === "." + d; });
+      var brand = BRANDS.filter(function(b){ return host.indexOf(b) > -1; })[0];
+      if (brand && !official) flags.push("uses '" + brand + "' but is not the official domain");
+      if ((host.match(/-/g) || []).length >= 2) flags.push("many hyphens in the domain");
+      notes.push({ host: host, flags: flags });
+    });
+    return notes;
+  }
+
+  // ---- prompt ----
+  function buildPrompt(text, notes, lang){
+    var hints = notes.length
+      ? notes.map(function(n){ return n.host + ": " + (n.flags.join(", ") || "no obvious issue"); }).join("\n")
+      : "No links found.";
+    return [
+      "You are a cyber-safety assistant helping people in India spot scams (fake KYC, UPI collect requests, courier or customs fees, lottery or prize, job and task scams, loan apps, phishing links, OTP theft, fake support numbers).",
+      "Analyse the message below (and the attached screenshot, if any). Be careful: do not call a normal message a scam without evidence, and do not call a scam safe.",
+      "Automated link notes (from a simple local check):\n" + hints,
+      "Reply with ONLY one JSON object, no markdown, no extra text, using exactly these keys:",
+      '{"verdict":"safe|suspicious|scam","risk_score":0-100,"scam_type":"short name, or \\"none\\"","red_flags":["max 5 short strings"],"what_to_do":["max 4 short action steps"],"explanation":"2-3 simple sentences","suspicious_phrases":["up to 5 exact words or phrases copied from the message, empty list if none"],"warning_text":"a 2-sentence warning someone could forward to family on WhatsApp, empty string if the message is safe"}',
+      "Write red_flags, what_to_do, explanation, scam_type and warning_text in: " + lang + ". Keep the JSON keys and the verdict value in English.",
+      "Message to analyse:\n" + (text || "(no text, see the screenshot)")
+    ].join("\n\n");
+  }
+
+  // ---- call Gemma 4 through the Gemini API ----
+  async function callGemma(prompt, model){
+    var key = keyEl.value.trim();
+    var parts = [{ text: prompt }];
+    if (imageData) parts.push({ inline_data: { mime_type: imageData.mime, data: imageData.b64 } });
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model || modelEl.value) + ":generateContent";
+    var res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ contents: [{ role: "user", parts: parts }], generationConfig: { temperature: 0.2 } })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok){
+      var m = data && data.error && data.error.message ? data.error.message : ("HTTP " + res.status);
+      var er = new Error(m); er.status = res.status; throw er;
+    }
+    var cand = data.candidates && data.candidates[0];
+    var ps = (cand && cand.content && cand.content.parts) || [];
+    var out = ps.filter(function(p){ return !p.thought && p.text; }).map(function(p){ return p.text; }).join("");
+    if (!out) throw new Error("The model returned no answer. Please try again.");
+    return out;
+  }
+
+  function parseJson(text){
+    var s = text.indexOf("{"), e = text.lastIndexOf("}");
+    if (s < 0 || e <= s) throw new Error("Could not read the model's answer. Please try again.");
+    var obj = JSON.parse(text.slice(s, e + 1));
+    var v = String(obj.verdict || "").toLowerCase();
+    if (["safe","suspicious","scam"].indexOf(v) < 0) v = "suspicious";
+    var score = Math.max(0, Math.min(100, Math.round(Number(obj.risk_score) || 0)));
+    function arr(x){ return Array.isArray(x) ? x.map(String).slice(0, 6) : []; }
+    return {
+      verdict: v, score: score,
+      type: String(obj.scam_type || "none"),
+      flags: arr(obj.red_flags), steps: arr(obj.what_to_do),
+      explanation: String(obj.explanation || ""),
+      phrases: arr(obj.suspicious_phrases), warn: String(obj.warning_text || "")
+    };
+  }
+
+  // ---- rendering (textContent only, so model output can never inject HTML) ----
+  function el(tag, cls, text){
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function listSection(title, items, cls){
+    if (!items.length) return null;
+    var box = el("div");
+    box.appendChild(el("h3", null, title));
+    var ul = el("ul", cls);
+    items.forEach(function(t){ ul.appendChild(el("li", null, t)); });
+    box.appendChild(ul);
+    return box;
+  }
+  var WORDS = { safe: "Looks safe", suspicious: "Be careful", scam: "Likely scam" };
+
+  function render(r, notes, text){
+    result.className = ""; result.textContent = "";
+    var v = el("div", "verdict " + r.verdict);
+    v.appendChild(el("p", "word", WORDS[r.verdict]));
+    if (r.type && r.type.toLowerCase() !== "none") v.appendChild(el("p", "type", r.type));
+    var meter = el("div", "meter"); var bar = el("span");
+    bar.style.width = "0%"; meter.appendChild(bar); v.appendChild(meter);
+    v.appendChild(el("p", "meter-label", "Risk score: " + r.score + " / 100"));
+    result.appendChild(v);
+    requestAnimationFrame(function(){ bar.style.width = r.score + "%"; });
+
+    if (r.explanation){
+      var ex = el("div"); ex.appendChild(el("h3", null, "Why")); ex.appendChild(el("p", "explain", r.explanation));
+      result.appendChild(ex);
+    }
+    if (text && r.phrases.length){
+      var q = highlighted(text, r.phrases);
+      if (q){ var qb = el("div"); qb.appendChild(el("h3", null, "Suspicious parts")); qb.appendChild(q); result.appendChild(qb); }
+    }
+    [listSection("Red flags", r.flags), listSection("What to do", r.steps)].forEach(function(s){ if (s) result.appendChild(s); });
+
+    var lines = notes.map(function(n){ return n.host + (n.flags.length ? " – " + n.flags.join("; ") : " – no obvious issue"); });
+    var ln = listSection("Link check (instant, no AI)", lines, "linknotes");
+    if (ln) result.appendChild(ln);
+
+    result.appendChild(actions(r));
+    if (r.verdict !== "safe"){
+      result.appendChild(el("div", "help", "If money was deducted or you shared an OTP, call 1930 right away and report it at cybercrime.gov.in."));
+    }
+  }
+  function highlighted(text, phrases){
+    var low = text.toLowerCase(), spans = [];
+    phrases.forEach(function(ph){
+      var t = ph.toLowerCase().trim(); if (t.length < 3) return;
+      var i = low.indexOf(t); if (i > -1) spans.push([i, i + t.length]);
+    });
+    if (!spans.length) return null;
+    spans.sort(function(a, b){ return a[0] - b[0]; });
+    var p = el("p", "quoted"), pos = 0;
+    spans.forEach(function(sp){
+      if (sp[0] < pos) return;
+      p.appendChild(document.createTextNode(text.slice(pos, sp[0])));
+      p.appendChild(el("mark", null, text.slice(sp[0], sp[1])));
+      pos = sp[1];
+    });
+    p.appendChild(document.createTextNode(text.slice(pos)));
+    return p;
+  }
+  function actions(r){
+    var box = el("div", "actions");
+    var copy = el("button", "btn2", "Copy report"); copy.type = "button";
+    copy.addEventListener("click", function(){
+      var t = WORDS[r.verdict] + " (" + r.score + "/100)" + (r.type && r.type.toLowerCase() !== "none" ? " - " + r.type : "") + "\n" + r.explanation + "\n\nWhat to do:\n- " + r.steps.join("\n- ");
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
+        function(){ copy.textContent = "Copied"; }, function(){ copy.textContent = "Copy failed"; });
+    });
+    box.appendChild(copy);
+    if (r.verdict !== "safe" && r.warn){
+      var a = el("a", "btn2", "Warn family on WhatsApp");
+      a.href = "https://wa.me/?text=" + encodeURIComponent(r.warn); a.target = "_blank"; a.rel = "noopener";
+      box.appendChild(a);
+    }
+    return box;
+  }
+  function showError(text){
+    result.className = ""; result.textContent = "";
+    result.appendChild(el("div", "error", text));
+  }
+
+  // ---- main ----
+  goBtn.addEventListener("click", async function(){
+    var text = msg.value.trim();
+    if (!text && !imageData) return showError("Paste a message or choose a screenshot first.");
+    if (!keyEl.value.trim()) return showError("Enter your Gemini API key. You can get a free key from Google AI Studio.");
+    store("sc_key", keyEl.value.trim());
+
+    var notes = linkNotes(text);
+    goBtn.disabled = true; goBtn.textContent = "";
+    var sp = el("span", "spinner"); goBtn.appendChild(sp); goBtn.appendChild(document.createTextNode("Checking"));
+    try{
+      var prompt = buildPrompt(text, notes, langEl.value), raw;
+      try{ raw = await callGemma(prompt); }
+      catch(e1){
+        if (e1.status === 429 || e1.status === 503){ await new Promise(function(ok){ setTimeout(ok, 2500); }); raw = await callGemma(prompt); }
+        else if (e1.status === 404){ raw = await callGemma(prompt, modelEl.value === "gemma-4-31b-it" ? "gemma-4-26b-a4b-it" : "gemma-4-31b-it"); }
+        else throw e1;
+      }
+      render(parseJson(raw), notes, text);
+    }catch(err){
+      showError("Could not check the message: " + err.message);
+    }finally{
+      goBtn.disabled = false; goBtn.textContent = "Check this message";
+    }
+  });
+})();
+</script>
+</body>
+</html>
